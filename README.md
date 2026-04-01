@@ -2,36 +2,21 @@
 
 A terminal virtual pet companion inspired by Claude Code's buddy feature. Hatch, collect, and interact with ASCII art pets right in your terminal.
 
-```
+```bash
 npx claude-pet
 ```
 
-```
-         · ● ·
-╭──────────────────────────────────────╮
-│                                      │
-│  ★ COMMON                       CAT  │
-│                                      │
-│     /\_/\                            │
-│    ( ✦   ✦)                          │
-│    (  ω  )                           │
-│    (")_(")                           │
-│                                      │
-│  Mochi                               │
-│                                      │
-│  "Pretends not to care about your    │
-│  code, but you catch it fixing       │
-│  typos when it thinks you're not     │
-│  looking."                           │
-│                                      │
-│  DEBUGGING   █░░░░░░░░░  11          │
-│  PATIENCE    ████████░░  79          │
-│  CHAOS       █░░░░░░░░░   9          │
-│  WISDOM      ░░░░░░░░░░   1          │
-│  SNARK       █░░░░░░░░░  14          │
-│                                      │
-╰──────────────────────────────────────╯
-```
+## Screenshots
+
+<p align="center">
+  <img src="images/owl-common.png" width="280" alt="Common owl buddy with idle chatter" />
+  <img src="images/dragon-epic.png" width="280" alt="Epic dragon buddy with tophat" />
+  <img src="images/dragon-shiny.png" width="280" alt="Shiny rainbow dragon buddy" />
+</p>
+
+<p align="center">
+  <em>Common owl chatting &bull; Epic dragon with tophat &bull; Shiny rainbow dragon</em>
+</p>
 
 ## Features
 

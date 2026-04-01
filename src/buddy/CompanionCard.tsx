@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Text } from 'ink'
+import stringWidth from 'string-width'
 import type { Companion } from './types.js'
 import { RARITY_STARS, STAT_NAMES } from './types.js'
 import { renderSprite } from './sprites.js'
@@ -96,9 +97,12 @@ export function CompanionCard({
   const sprite = spriteLines ?? renderSprite(companion, 0)
   const speciesLabel = companion.species.toUpperCase()
 
-  // Build header text — truncate if needed to fit within card
+  // Build header text — pad so total display width = CARD_INNER_WIDTH
   const rarityText = `${stars} ${companion.rarity.toUpperCase()}`
-  const speciesText = speciesLabel + (isShiny ? ' *' : '')
+  const speciesText = speciesLabel + (isShiny ? ' ✨' : '')
+  const usedWidth = stringWidth(rarityText) + stringWidth(speciesText)
+  const gap = Math.max(1, CARD_INNER_WIDTH - usedWidth)
+  const headerLine = rarityText + ' '.repeat(gap) + speciesText
 
   return (
     <Box
@@ -109,22 +113,15 @@ export function CompanionCard({
       width={CARD_WIDTH}
     >
       {/* Header: rarity + species */}
-      <Box width={CARD_INNER_WIDTH}>
-        <Box flexGrow={1}>
-          {isShiny ? (
-            <RainbowText text={rarityText} tick={tick} bold />
-          ) : (
-            <Text color={color} bold>{rarityText}</Text>
-          )}
-        </Box>
+      {isShiny ? (
         <Box>
-          {isShiny ? (
-            <RainbowText text={speciesText} tick={tick} bold />
-          ) : (
-            <Text color={color} bold>{speciesText}</Text>
-          )}
+          <RainbowText text={headerLine} tick={tick} bold />
         </Box>
-      </Box>
+      ) : (
+        <Text color={color} bold>
+          {headerLine}
+        </Text>
+      )}
 
       <Text> </Text>
 
