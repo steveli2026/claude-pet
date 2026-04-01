@@ -64,19 +64,17 @@ export function useCompanionAnimation(companion: Companion | undefined): {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- tick intentionally captured at reaction-change, not tracked
   }, [reaction, setAppState])
 
-  if (!companion) {
-    return { spriteLines: [], heartFrame: null, reaction: undefined, fading: false, tick }
-  }
-
-  const bubbleAge = reaction ? tick - lastSpokeTick.current : 0
-  const fading = reaction !== undefined && bubbleAge >= BUBBLE_SHOW - FADE_WINDOW
+  const bubbleAge = companion && reaction ? tick - lastSpokeTick.current : 0
+  const fading = companion !== undefined && reaction !== undefined && bubbleAge >= BUBBLE_SHOW - FADE_WINDOW
   const petAge = petAt ? tick - petStartTick : Infinity
-  const petting = petAge * TICK_MS < PET_BURST_MS
+  const petting = companion !== undefined && petAge * TICK_MS < PET_BURST_MS
 
-  const frameCount = spriteFrameCount(companion.species)
+  const frameCount = companion ? spriteFrameCount(companion.species) : 1
   let spriteFrame: number
   let blink = false
-  if (reaction || petting) {
+  if (!companion) {
+    spriteFrame = 0
+  } else if (reaction || petting) {
     spriteFrame = tick % frameCount
   } else {
     const step = IDLE_SEQUENCE[tick % IDLE_SEQUENCE.length]!
@@ -99,6 +97,10 @@ export function useCompanionAnimation(companion: Companion | undefined): {
     }
     prevStep.current = step
   }, [tick, companion, reaction, petting, setAppState])
+
+  if (!companion) {
+    return { spriteLines: [], heartFrame: null, reaction: undefined, fading: false, tick }
+  }
 
   const body = renderSprite(companion, spriteFrame).map(line =>
     blink ? line.replaceAll(companion.eye, '-') : line,
