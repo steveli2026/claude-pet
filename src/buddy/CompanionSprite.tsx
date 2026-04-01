@@ -1,6 +1,7 @@
 import figures from 'figures'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppState, useSetAppState } from '../app/AppState.js'
+import { pickIdleChatter } from '../app/reactions.js'
 import type { Companion } from './types.js'
 import { renderSprite, spriteFrameCount } from './sprites.js'
 
@@ -32,6 +33,7 @@ export function useCompanionAnimation(companion: Companion | undefined): {
   const setAppState = useSetAppState()
   const [tick, setTick] = useState(0)
   const lastSpokeTick = useRef(0)
+  const prevStep = useRef(0)
   const [{ petStartTick, forPetAt }, setPetStart] = useState({
     petStartTick: 0,
     forPetAt: petAt,
@@ -84,6 +86,13 @@ export function useCompanionAnimation(companion: Companion | undefined): {
     } else {
       spriteFrame = step % frameCount
     }
+    // Trigger idle chatter when transitioning to a fidget frame
+    if (step > 0 && prevStep.current === 0 && !reaction && Math.random() < 0.3) {
+      setAppState(prev =>
+        prev.companionReaction ? prev : { ...prev, companionReaction: pickIdleChatter() },
+      )
+    }
+    prevStep.current = step
   }
 
   const body = renderSprite(companion, spriteFrame).map(line =>
