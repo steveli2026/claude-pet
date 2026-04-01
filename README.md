@@ -49,7 +49,6 @@ npx github:steveli2026/claude-pet
 | **Hatch** | Hatch a new buddy (max 8) with an egg-crack animation |
 | **Rename** | Rename your active buddy (type name, Enter to confirm, Esc to cancel) |
 | **Release** | Release your active buddy with confirmation ("Don't go" / "See ya") |
-| **Stats** | Show species, rarity, hat, eye, and stat values in the log |
 
 ## Install
 
