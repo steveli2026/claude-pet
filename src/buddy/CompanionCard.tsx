@@ -98,7 +98,7 @@ export function CompanionCard({
 
   // Build header text — truncate if needed to fit within card
   const rarityText = `${stars} ${companion.rarity.toUpperCase()}`
-  const speciesText = speciesLabel + (isShiny ? ' ✨' : '')
+  const speciesText = speciesLabel + (isShiny ? ' *' : '')
 
   return (
     <Box
