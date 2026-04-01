@@ -111,7 +111,9 @@ function generatePersonality(species: string, seed: number): string {
   return templates[seed % templates.length]!
 }
 
-function createCompanion(): StoredCompanion {
+export const MAX_BUDDIES = 8
+
+export function createCompanion(): StoredCompanion {
   const name = pick(NAMES)
   const id = crypto.randomUUID()
   const seed = `${resolveUserId()}:${SALT}:${Date.now()}`
@@ -125,6 +127,9 @@ export async function doHatch(
   config: Config,
   setConfig: Dispatch<SetStateAction<Config>>,
 ): Promise<string[]> {
+  if (config.companions.length >= MAX_BUDDIES) {
+    return [`You already have ${MAX_BUDDIES} buddies! Release one first.`]
+  }
   const soul = createCompanion()
   const companions = [...config.companions, soul]
   const next = { ...config, companions, activeCompanionId: soul.id }
@@ -176,4 +181,22 @@ export function doStats(): string[] {
     `Hat: ${companion.hat} · Eye: ${companion.eye}`,
     `Stats: ${stats}`,
   ]
+}
+
+export async function doRelease(
+  config: Config,
+  setConfig: Dispatch<SetStateAction<Config>>,
+): Promise<string[]> {
+  const companion = getActiveCompanion()
+  if (!companion) return ['No companion to release.']
+  const name = companion.name
+  const remaining = config.companions.filter(c => c.id !== config.activeCompanionId)
+  const next: Config = {
+    ...config,
+    companions: remaining,
+    activeCompanionId: remaining[0]?.id,
+  }
+  await saveGlobalConfig(next)
+  setConfig(next)
+  return [`${name} waved goodbye. 👋`]
 }
