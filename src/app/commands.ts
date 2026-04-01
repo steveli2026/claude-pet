@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import type { Dispatch, SetStateAction } from 'react'
 import { getActiveCompanion, getAllCompanions, rollWithSeed, SALT } from '../buddy/companion.js'
 import {
+  BUDDY_COLORS,
   RARITY_STARS,
   type Companion,
   type StoredCompanion,
@@ -110,121 +111,69 @@ function generatePersonality(species: string, seed: number): string {
   return templates[seed % templates.length]!
 }
 
-function hatchCompanion(config: Config): StoredCompanion {
+function createCompanion(): StoredCompanion {
   const name = pick(NAMES)
   const id = crypto.randomUUID()
   const seed = `${resolveUserId()}:${SALT}:${Date.now()}`
   const { bones, inspirationSeed } = rollWithSeed(seed)
   const personality = generatePersonality(bones.species, inspirationSeed)
-  return {
-    name,
-    personality,
-    id,
-    seed,
-    hatchedAt: Date.now(),
-  }
+  const color = pick(BUDDY_COLORS)
+  return { name, personality, id, seed, color, hatchedAt: Date.now() }
 }
 
-function formatCompanion(companion: Companion): string[] {
-  const stars = RARITY_STARS[companion.rarity]
-  const stats = Object.entries(companion.stats)
-    .map(([name, value]) => `${name}: ${value}`)
-    .join(', ')
+export async function doHatch(
+  config: Config,
+  setConfig: Dispatch<SetStateAction<Config>>,
+): Promise<string[]> {
+  const soul = createCompanion()
+  const companions = [...config.companions, soul]
+  const next = { ...config, companions, activeCompanionId: soul.id }
+  await saveGlobalConfig(next)
+  setConfig(next)
+  const { bones } = rollWithSeed(soul.seed)
   return [
-    `Name: ${companion.name}`,
-    `Species: ${companion.species}${companion.shiny ? ' (shiny)' : ''}`,
-    `Rarity: ${companion.rarity} ${stars}`,
-    `Hat: ${companion.hat}`,
-    `Eye: ${companion.eye}`,
-    `Stats: ${stats}`,
+    `${soul.name} the ${bones.species} hatched! (${bones.rarity} ${RARITY_STARS[bones.rarity]})`,
+    companions.length > 1
+      ? `You now have ${companions.length} buddies. Use ←/→ to switch.`
+      : 'Use ←/→ to switch buddies after hatching more.',
   ]
 }
 
-export async function runBuddyCommand(
-  line: string,
+export function doPet(
+  setAppState: Dispatch<SetStateAction<AppState>>,
+): string[] {
+  setAppState(prev => ({
+    ...prev,
+    companionPetAt: Date.now(),
+    companionReaction: pickPetReaction(),
+  }))
+  return ['Your buddy seems delighted.']
+}
+
+export async function doRename(
+  name: string,
   config: Config,
   setConfig: Dispatch<SetStateAction<Config>>,
-  setAppState: Dispatch<SetStateAction<AppState>>,
-): Promise<string[] | null> {
-  const trimmed = line.trim()
-  if (!trimmed.startsWith('/buddy')) return null
+): Promise<string[]> {
+  const companions = config.companions.map(c =>
+    c.id === config.activeCompanionId ? { ...c, name } : c,
+  )
+  const next = { ...config, companions }
+  await saveGlobalConfig(next)
+  setConfig(next)
+  return [`Renamed to ${name}.`]
+}
 
-  const args = trimmed.split(/\s+/).slice(1)
-  const sub = args[0]?.toLowerCase()
-
-  if (!sub) {
-    if (config.companions.length === 0) {
-      // First hatch
-      const soul = hatchCompanion(config)
-      const next = { ...config, companions: [soul], activeCompanionId: soul.id }
-      await saveGlobalConfig(next)
-      setConfig(next)
-      const companion = getActiveCompanion()
-      if (!companion) return ['Hatch failed. Try again.']
-      return [
-        `${companion.name} hatched!`,
-        `say its name to get its take · /buddy pet · /buddy hatch for more`,
-      ]
-    }
-    return [
-      'Commands: /buddy hatch | /buddy pet | /buddy name <name> | /buddy stats | /buddy list',
-      'Use ←/→ arrows to switch between buddies.',
-    ]
-  }
-
-  if (sub === 'hatch') {
-    const soul = hatchCompanion(config)
-    const companions = [...config.companions, soul]
-    const next = { ...config, companions, activeCompanionId: soul.id }
-    await saveGlobalConfig(next)
-    setConfig(next)
-    const { bones } = rollWithSeed(soul.seed)
-    return [
-      `${soul.name} the ${bones.species} hatched! (${bones.rarity} ${RARITY_STARS[bones.rarity]})`,
-      `You now have ${companions.length} buddies. Use ←/→ to switch.`,
-    ]
-  }
-
-  if (sub === 'pet') {
-    if (config.companions.length === 0) {
-      return ['No companion yet. Run /buddy to hatch.']
-    }
-    setAppState(prev => ({
-      ...prev,
-      companionPetAt: Date.now(),
-      companionReaction: pickPetReaction(),
-    }))
-    return ['Your buddy seems delighted.']
-  }
-
-  if (sub === 'name') {
-    if (config.companions.length === 0) return ['No companion yet. Run /buddy to hatch.']
-    const nextName = args.slice(1).join(' ').trim()
-    if (!nextName) return ['Usage: /buddy name <name>']
-    const companions = config.companions.map(c =>
-      c.id === config.activeCompanionId ? { ...c, name: nextName } : c,
-    )
-    const next = { ...config, companions }
-    await saveGlobalConfig(next)
-    setConfig(next)
-    return [`Renamed to ${nextName}.`]
-  }
-
-  if (sub === 'stats') {
-    const companion = getActiveCompanion()
-    if (!companion) return ['No companion yet. Run /buddy to hatch.']
-    return formatCompanion(companion)
-  }
-
-  if (sub === 'list') {
-    const all = getAllCompanions()
-    if (all.length === 0) return ['No companions yet. Run /buddy to hatch.']
-    return all.map((c, i) => {
-      const active = c.id === config.activeCompanionId ? '▸ ' : '  '
-      const stars = RARITY_STARS[c.rarity]
-      return `${active}${i + 1}. ${c.name} — ${c.species} ${stars}${c.shiny ? ' ✨' : ''}`
-    })
-  }
-
-  return ['Unknown /buddy command. Try /buddy for help.']
+export function doStats(): string[] {
+  const companion = getActiveCompanion()
+  if (!companion) return ['No companion.']
+  const stars = RARITY_STARS[companion.rarity]
+  const stats = Object.entries(companion.stats)
+    .map(([n, v]) => `${n}: ${v}`)
+    .join(', ')
+  return [
+    `${companion.name} — ${companion.species}${companion.shiny ? ' (shiny)' : ''} ${stars}`,
+    `Hat: ${companion.hat} · Eye: ${companion.eye}`,
+    `Stats: ${stats}`,
+  ]
 }

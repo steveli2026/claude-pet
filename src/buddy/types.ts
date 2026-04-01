@@ -111,12 +111,14 @@ export type Companion = CompanionBones &
   CompanionSoul & {
     id: string
     seed: string
+    color: string
     hatchedAt: number
   }
 
 export type StoredCompanion = CompanionSoul & {
   id: string
   seed: string
+  color: string
   hatchedAt: number
 }
 
@@ -143,3 +145,18 @@ export const RARITY_COLORS = {
   epic: 'magenta',
   legendary: 'yellow',
 } as const satisfies Record<Rarity, string>
+
+export const BUDDY_COLORS = [
+  'red',
+  'green',
+  'yellow',
+  'blue',
+  'magenta',
+  'cyan',
+  'redBright',
+  'greenBright',
+  'yellowBright',
+  'blueBright',
+  'magentaBright',
+  'cyanBright',
+] as const

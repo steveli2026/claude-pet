@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { SALT } from '../buddy/companion.js'
-import type { StoredCompanion } from '../buddy/types.js'
+import { BUDDY_COLORS, type StoredCompanion } from '../buddy/types.js'
 
 export type Config = {
   companions: StoredCompanion[]
@@ -43,17 +43,27 @@ export function resolveUserId(): string {
   )
 }
 
+function hashCode(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  }
+  return h
+}
+
 // Migrate legacy single-companion config to multi-companion format
 function migrateLegacy(parsed: Record<string, unknown>): Config {
   const legacy = parsed.companion as { name: string; personality: string; hatchedAt: number }
   if (!legacy) return { ...DEFAULT_CONFIG, userId: parsed.userId as string | undefined }
   const id = crypto.randomUUID()
+  const seed = resolveUserId() + SALT
   const migrated: StoredCompanion = {
     name: legacy.name,
     personality: legacy.personality,
     hatchedAt: legacy.hatchedAt,
     id,
-    seed: resolveUserId() + SALT,
+    seed,
+    color: BUDDY_COLORS[Math.abs(hashCode(seed)) % BUDDY_COLORS.length]!,
   }
   return {
     companions: [migrated],
@@ -75,7 +85,19 @@ export async function loadGlobalConfig(): Promise<Config> {
       // Persist the migrated format
       await fs.writeFile(CONFIG_PATH, JSON.stringify(migrated, null, 2), 'utf8')
     } else {
-      setGlobalConfig(parsed as unknown as Config)
+      const config = parsed as unknown as Config
+      // Backfill color for companions that don't have one
+      let dirty = false
+      for (const c of config.companions ?? []) {
+        if (!c.color) {
+          c.color = BUDDY_COLORS[Math.abs(hashCode(c.seed)) % BUDDY_COLORS.length]!
+          dirty = true
+        }
+      }
+      setGlobalConfig(config)
+      if (dirty) {
+        await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8')
+      }
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {

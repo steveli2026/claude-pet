@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Text } from 'ink'
 import type { Companion } from './types.js'
-import { RARITY_COLORS, RARITY_STARS, STAT_NAMES } from './types.js'
+import { RARITY_STARS, STAT_NAMES } from './types.js'
 import { renderSprite } from './sprites.js'
 
 const CARD_INNER_WIDTH = 36
@@ -62,7 +62,7 @@ export function CompanionCard({
   reaction?: string
   fading?: boolean
 }): React.ReactNode {
-  const color = RARITY_COLORS[companion.rarity]
+  const color = companion.color
   const stars = RARITY_STARS[companion.rarity]
   const sprite = spriteLines ?? renderSprite(companion, 0)
   const speciesLabel = companion.species.toUpperCase()

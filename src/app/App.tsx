@@ -3,34 +3,17 @@ import { Box, Text, useApp, useInput } from 'ink'
 import { CompanionCard, CARD_WIDTH } from '../buddy/CompanionCard.js'
 import { useCompanionAnimation } from '../buddy/CompanionSprite.js'
 import { getActiveCompanion } from '../buddy/companion.js'
-import { AppStateProvider, useAppState, useSetAppState } from './AppState.js'
-import { runBuddyCommand } from './commands.js'
+import { AppStateProvider, useSetAppState } from './AppState.js'
+import { doHatch, doPet, doRename, doStats } from './commands.js'
 import type { Config } from './config.js'
 import { saveGlobalConfig } from './config.js'
-import { findNameReaction } from './reactions.js'
 import { useStdoutDimensions } from './useStdoutDimensions.js'
 
-type LogEntry = {
-  type: 'user' | 'system'
-  text: string
-}
-
-const MAX_LOGS = 200
+const MAX_MESSAGES = 50
 const MIN_COLS_FOR_SIDE_CARD = 80
 
-function LogList({ logs, maxLines }: { logs: LogEntry[]; maxLines: number }) {
-  const visible = logs.slice(Math.max(0, logs.length - maxLines))
-  return (
-    <Box flexDirection="column" flexGrow={1}>
-      {visible.map((entry, idx) => (
-        <Text key={`${entry.type}-${idx}`} dimColor={entry.type === 'system'}>
-          {entry.type === 'user' ? '> ' : ''}
-          {entry.text}
-        </Text>
-      ))}
-    </Box>
-  )
-}
+const MENU_HAS_BUDDY = ['Pet', 'Hatch', 'Rename', 'Stats'] as const
+const MENU_NO_BUDDY = ['Hatch'] as const
 
 function PageIndicator({
   total,
@@ -50,6 +33,47 @@ function PageIndicator({
   )
 }
 
+function MenuBar({
+  items,
+  selectedIndex,
+}: {
+  items: readonly string[]
+  selectedIndex: number
+}): React.ReactNode {
+  return (
+    <Box>
+      {items.map((item, i) => (
+        <Text
+          key={item}
+          bold={i === selectedIndex}
+          inverse={i === selectedIndex}
+        >
+          {i === selectedIndex ? ` ${item} ` : `  ${item}  `}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
+function MessageList({
+  messages,
+  maxLines,
+}: {
+  messages: string[]
+  maxLines: number
+}): React.ReactNode {
+  const visible = messages.slice(Math.max(0, messages.length - maxLines))
+  return (
+    <Box flexDirection="column" flexGrow={1}>
+      {visible.map((msg, i) => (
+        <Text key={i} dimColor>
+          {msg}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
 function BuddyShell({
   config,
   setConfig,
@@ -57,116 +81,153 @@ function BuddyShell({
   config: Config
   setConfig: React.Dispatch<React.SetStateAction<Config>>
 }): React.ReactNode {
-  const [input, setInput] = useState('')
-  const [logs, setLogs] = useState<LogEntry[]>([
-    { type: 'system', text: 'Type /buddy to hatch your companion.' },
+  const [messages, setMessages] = useState<string[]>([
+    'Welcome! Select "Hatch" to get your first buddy.',
   ])
+  const [menuIndex, setMenuIndex] = useState(0)
+  const [renameMode, setRenameMode] = useState(false)
+  const [renameInput, setRenameInput] = useState('')
   const { exit } = useApp()
   const setAppState = useSetAppState()
   const [columns, rows] = useStdoutDimensions()
 
-  // Active buddy index
-  const activeIndex = config.companions.findIndex(
+  const hasCompanions = config.companions.length > 0
+  const menuItems = hasCompanions ? MENU_HAS_BUDDY : MENU_NO_BUDDY
+  const clampedIndex = Math.min(menuIndex, menuItems.length - 1)
+
+  const activeIdx = config.companions.findIndex(
     c => c.id === config.activeCompanionId,
   )
-  const currentIndex = activeIndex >= 0 ? activeIndex : 0
+  const currentBuddyIndex = activeIdx >= 0 ? activeIdx : 0
 
   const companion = getActiveCompanion()
-  const hasCompanions = config.companions.length > 0
-  const showSideCard = hasCompanions && companion && columns >= MIN_COLS_FOR_SIDE_CARD
+  const showSideCard =
+    hasCompanions && companion && columns >= MIN_COLS_FOR_SIDE_CARD
 
   const animation = useCompanionAnimation(companion)
+  const maxLines = Math.max(3, rows - 4)
 
-  const maxLines = Math.max(5, rows - 3)
-
-  const appendLogs = useCallback((entries: LogEntry[]) => {
-    setLogs(prev => {
-      const next = [...prev, ...entries]
-      return next.slice(Math.max(0, next.length - MAX_LOGS))
+  const appendMessages = useCallback((msgs: string[]) => {
+    setMessages(prev => {
+      const next = [...prev, ...msgs]
+      return next.slice(Math.max(0, next.length - MAX_MESSAGES))
     })
   }, [])
-
-  const handleLine = useCallback(
-    async (line: string) => {
-      appendLogs([{ type: 'user', text: line }])
-      const result = await runBuddyCommand(line, config, setConfig, setAppState)
-      if (result) {
-        appendLogs(result.map(text => ({ type: 'system', text })))
-        return
-      }
-      const current = getActiveCompanion()
-      if (current) {
-        const reaction = findNameReaction(line, current.name)
-        if (reaction) {
-          setAppState(prev => ({ ...prev, companionReaction: reaction }))
-        }
-      }
-    },
-    [appendLogs, config, setAppState, setConfig],
-  )
-
-  const submit = useCallback(() => {
-    const trimmed = input.trim()
-    if (!trimmed) {
-      setInput('')
-      return
-    }
-    void handleLine(trimmed)
-    setInput('')
-  }, [handleLine, input])
 
   const switchBuddy = useCallback(
     async (delta: number) => {
       const len = config.companions.length
       if (len <= 1) return
-      const nextIndex = (currentIndex + delta + len) % len
+      const nextIndex = (currentBuddyIndex + delta + len) % len
       const nextId = config.companions[nextIndex]!.id
       const next = { ...config, activeCompanionId: nextId }
       await saveGlobalConfig(next)
       setConfig(next)
-      // Clear reaction when switching
-      setAppState(prev => ({ ...prev, companionReaction: undefined, companionPetAt: undefined }))
+      setAppState(prev => ({
+        ...prev,
+        companionReaction: undefined,
+        companionPetAt: undefined,
+      }))
     },
-    [config, currentIndex, setConfig, setAppState],
+    [config, currentBuddyIndex, setConfig, setAppState],
   )
 
+  const executeMenu = useCallback(
+    async (index: number) => {
+      const item = menuItems[index]
+      if (!item) return
+
+      if (item === 'Pet') {
+        const msgs = doPet(setAppState)
+        appendMessages(msgs)
+      } else if (item === 'Hatch') {
+        const msgs = await doHatch(config, setConfig)
+        appendMessages(msgs)
+      } else if (item === 'Rename') {
+        setRenameMode(true)
+        setRenameInput('')
+      } else if (item === 'Stats') {
+        const msgs = doStats()
+        appendMessages(msgs)
+      }
+    },
+    [menuItems, setAppState, config, setConfig, appendMessages],
+  )
+
+  const confirmRename = useCallback(async () => {
+    const name = renameInput.trim()
+    if (!name) {
+      setRenameMode(false)
+      return
+    }
+    const msgs = await doRename(name, config, setConfig)
+    appendMessages(msgs)
+    setRenameMode(false)
+    setRenameInput('')
+  }, [renameInput, config, setConfig, appendMessages])
+
   useInput((value, key) => {
-    if (key.ctrl && value === 'c') {
+    if (key.ctrl && (value === 'c' || value === 'd')) {
       exit()
       return
     }
-    if (key.ctrl && value === 'd') {
-      exit()
+
+    // Rename mode: capture text input
+    if (renameMode) {
+      if (key.escape) {
+        setRenameMode(false)
+        setRenameInput('')
+        return
+      }
+      if (key.return) {
+        void confirmRename()
+        return
+      }
+      if (key.backspace || key.delete) {
+        setRenameInput(prev => prev.slice(0, -1))
+        return
+      }
+      if (key.ctrl || key.meta) return
+      if (value) {
+        setRenameInput(prev => prev + value)
+      }
       return
     }
-    if (key.leftArrow && config.companions.length > 1) {
+
+    // Normal mode
+    if (key.upArrow) {
+      setMenuIndex(prev => (prev - 1 + menuItems.length) % menuItems.length)
+      return
+    }
+    if (key.downArrow) {
+      setMenuIndex(prev => (prev + 1) % menuItems.length)
+      return
+    }
+    if (key.leftArrow) {
       void switchBuddy(-1)
       return
     }
-    if (key.rightArrow && config.companions.length > 1) {
+    if (key.rightArrow) {
       void switchBuddy(1)
       return
     }
     if (key.return) {
-      submit()
+      void executeMenu(clampedIndex)
       return
-    }
-    if (key.backspace || key.delete) {
-      setInput(prev => prev.slice(0, -1))
-      return
-    }
-    if (key.escape) {
-      setInput('')
-      return
-    }
-    if (key.ctrl || key.meta) return
-    if (value) {
-      setInput(prev => prev + value)
     }
   })
 
   return (
     <Box flexDirection="column" width={columns}>
+      {/* Page indicator above card */}
+      {config.companions.length > 1 && (
+        <PageIndicator
+          total={config.companions.length}
+          active={currentBuddyIndex}
+        />
+      )}
+
+      {/* Main content row */}
       <Box flexDirection="row" width={columns}>
         {/* Left: Card */}
         {showSideCard && companion && (
@@ -179,24 +240,31 @@ function BuddyShell({
             />
           </Box>
         )}
-        {/* Right: Logs + input */}
-        <Box flexDirection="column" flexGrow={1}>
-          <LogList logs={logs} maxLines={maxLines} />
-          <Text>
-            <Text color="cyan">› </Text>
-            {input || ''}
-          </Text>
+        {/* Right: Messages */}
+        <Box flexDirection="column" flexGrow={1} paddingLeft={showSideCard ? 1 : 0}>
+          <MessageList messages={messages} maxLines={maxLines} />
         </Box>
       </Box>
-      {/* Page indicator */}
-      {config.companions.length > 1 && (
-        <PageIndicator total={config.companions.length} active={currentIndex} />
+
+      {/* Bottom: Menu bar or rename input */}
+      {renameMode ? (
+        <Box>
+          <Text color="cyan">New name: </Text>
+          <Text>{renameInput}</Text>
+          <Text dimColor>█</Text>
+        </Box>
+      ) : (
+        <MenuBar items={menuItems} selectedIndex={clampedIndex} />
       )}
     </Box>
   )
 }
 
-export function App({ initialConfig }: { initialConfig: Config }): React.ReactNode {
+export function App({
+  initialConfig,
+}: {
+  initialConfig: Config
+}): React.ReactNode {
   const [config, setConfig] = useState<Config>(initialConfig)
   const initialState = useMemo(
     () => ({ companionReaction: undefined, companionPetAt: undefined }),
