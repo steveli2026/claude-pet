@@ -25,6 +25,7 @@ export function useCompanionAnimation(companion: Companion | undefined): {
   heartFrame: string | null
   reaction: string | undefined
   fading: boolean
+  tick: number
 } {
   const reaction = useAppState(s => s.companionReaction)
   const petAt = useAppState(s => s.companionPetAt)
@@ -62,7 +63,7 @@ export function useCompanionAnimation(companion: Companion | undefined): {
   }, [reaction, setAppState])
 
   if (!companion) {
-    return { spriteLines: [], heartFrame: null, reaction: undefined, fading: false }
+    return { spriteLines: [], heartFrame: null, reaction: undefined, fading: false, tick }
   }
 
   const bubbleAge = reaction ? tick - lastSpokeTick.current : 0
@@ -92,5 +93,5 @@ export function useCompanionAnimation(companion: Companion | undefined): {
   const heartFrame = petting ? (PET_HEARTS[petAge % PET_HEARTS.length] ?? null) : null
   const spriteLines = heartFrame ? [heartFrame, ...body] : body
 
-  return { spriteLines, heartFrame, reaction, fading }
+  return { spriteLines, heartFrame, reaction, fading, tick }
 }

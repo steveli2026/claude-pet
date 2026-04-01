@@ -9,6 +9,32 @@ const BAR_WIDTH = 10
 
 const BLOCKS = [' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█']
 
+const RAINBOW = ['red', 'redBright', 'yellow', 'green', 'cyan', 'blue', 'magenta'] as const
+
+function getRainbowColor(charIndex: number, tick: number): string {
+  return RAINBOW[(charIndex + tick) % RAINBOW.length]!
+}
+
+function RainbowText({
+  text,
+  tick,
+  bold,
+}: {
+  text: string
+  tick: number
+  bold?: boolean
+}): React.ReactNode {
+  return (
+    <>
+      {[...text].map((ch, i) => (
+        <Text key={i} color={getRainbowColor(i, tick)} bold={bold}>
+          {ch}
+        </Text>
+      ))}
+    </>
+  )
+}
+
 function StatBar({
   value,
   width,
@@ -56,51 +82,77 @@ export function CompanionCard({
   spriteLines,
   reaction,
   fading,
+  tick = 0,
 }: {
   companion: Companion
   spriteLines?: string[]
   reaction?: string
   fading?: boolean
+  tick?: number
 }): React.ReactNode {
   const color = companion.color
+  const isShiny = companion.shiny
   const stars = RARITY_STARS[companion.rarity]
   const sprite = spriteLines ?? renderSprite(companion, 0)
   const speciesLabel = companion.species.toUpperCase()
-  const shinyLabel = companion.shiny ? ' ✨' : ''
+
+  // Build header text — truncate if needed to fit within card
+  const rarityText = `${stars} ${companion.rarity.toUpperCase()}`
+  const speciesText = speciesLabel + (isShiny ? ' ✨' : '')
 
   return (
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={color}
+      borderColor={isShiny ? getRainbowColor(0, tick) : color}
       paddingX={1}
       width={CARD_WIDTH}
     >
       {/* Header: rarity + species */}
-      <Box justifyContent="space-between" width={CARD_INNER_WIDTH}>
-        <Text color={color} bold>
-          {stars} {companion.rarity.toUpperCase()}
-        </Text>
-        <Text color={color} bold>
-          {speciesLabel}{shinyLabel}
-        </Text>
+      <Box width={CARD_INNER_WIDTH}>
+        <Box flexGrow={1}>
+          {isShiny ? (
+            <RainbowText text={rarityText} tick={tick} bold />
+          ) : (
+            <Text color={color} bold>{rarityText}</Text>
+          )}
+        </Box>
+        <Box>
+          {isShiny ? (
+            <RainbowText text={speciesText} tick={tick} bold />
+          ) : (
+            <Text color={color} bold>{speciesText}</Text>
+          )}
+        </Box>
       </Box>
 
       <Text> </Text>
 
       {/* Sprite */}
       <Box flexDirection="column" alignItems="center" width={CARD_INNER_WIDTH}>
-        {sprite.map((line, i) => (
-          <Text key={i} color={color}>
-            {line}
-          </Text>
-        ))}
+        {sprite.map((line, i) =>
+          isShiny ? (
+            <Box key={i}>
+              <RainbowText text={line} tick={tick} />
+            </Box>
+          ) : (
+            <Text key={i} color={color}>
+              {line}
+            </Text>
+          ),
+        )}
       </Box>
 
       <Text> </Text>
 
       {/* Name */}
-      <Text bold>{companion.name}</Text>
+      {isShiny ? (
+        <Box>
+          <RainbowText text={companion.name} tick={tick} bold />
+        </Box>
+      ) : (
+        <Text bold>{companion.name}</Text>
+      )}
 
       <Text> </Text>
 
@@ -108,7 +160,12 @@ export function CompanionCard({
       {reaction ? (
         <>
           {wrapText(`"${reaction}"`, CARD_INNER_WIDTH).map((line, i) => (
-            <Text key={i} italic color={fading ? 'gray' : undefined} dimColor={!fading}>
+            <Text
+              key={i}
+              italic
+              color={fading ? 'gray' : undefined}
+              dimColor={!fading}
+            >
               {line}
             </Text>
           ))}
@@ -134,10 +191,12 @@ export function CompanionCard({
         const numStr = String(value).padStart(3)
         return (
           <Box key={name}>
-            <Text dimColor>
-              {padded}{' '}
-            </Text>
-            <StatBar value={value} width={BAR_WIDTH} color={color} />
+            <Text dimColor>{padded} </Text>
+            <StatBar
+              value={value}
+              width={BAR_WIDTH}
+              color={isShiny ? getRainbowColor(STAT_NAMES.indexOf(name), tick) : color}
+            />
             <Text dimColor> {numStr}</Text>
           </Box>
         )

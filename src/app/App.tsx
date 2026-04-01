@@ -237,6 +237,7 @@ function BuddyShell({
               spriteLines={animation.spriteLines}
               reaction={animation.reaction}
               fading={animation.fading}
+              tick={animation.tick}
             />
           </Box>
         )}
