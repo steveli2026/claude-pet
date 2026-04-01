@@ -187,7 +187,7 @@ function BuddyShell({
       if (!item) return
 
       if (item === 'Pet') {
-        const msgs = doPet(setAppState)
+        const msgs = doPet(companion?.name ?? 'Your buddy', setAppState)
         appendMessages(msgs)
       } else if (item === 'Hatch') {
         await startHatch()

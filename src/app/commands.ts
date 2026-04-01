@@ -145,6 +145,7 @@ export async function doHatch(
 }
 
 export function doPet(
+  name: string,
   setAppState: Dispatch<SetStateAction<AppState>>,
 ): string[] {
   setAppState(prev => ({
@@ -152,7 +153,7 @@ export function doPet(
     companionPetAt: Date.now(),
     companionReaction: pickPetReaction(),
   }))
-  return ['Your buddy seems delighted.']
+  return [`${name} seems delighted.`]
 }
 
 export async function doRename(
