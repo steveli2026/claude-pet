@@ -3,7 +3,7 @@
 A terminal virtual pet companion inspired by Claude Code's buddy feature. Hatch, collect, and interact with ASCII art pets right in your terminal.
 
 ```bash
-npx claude-pet
+npx claude-buddy-pet
 ```
 
 ## Screenshots
@@ -57,11 +57,11 @@ Requires [Node.js](https://nodejs.org/) 18+.
 
 ```bash
 # Run instantly (no install)
-npx claude-pet
+npx claude-buddy-pet
 
 # Or install globally
-npm install -g claude-pet
-claude-pet
+npm install -g claude-buddy-pet
+claude-buddy-pet
 ```
 
 ## Data
@@ -71,7 +71,7 @@ Buddy data is saved to `.data/companion.json` in the current directory. Only the
 Set `BUDDY_USER_ID` to control the identity used for generation:
 
 ```bash
-BUDDY_USER_ID=alice npx claude-pet
+BUDDY_USER_ID=alice npx claude-buddy-pet
 ```
 
 ## Development
