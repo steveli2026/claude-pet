@@ -12,7 +12,6 @@ import {
   doPet,
   doRelease,
   doRename,
-  doStats,
 } from './commands.js'
 import type { Config } from './config.js'
 import { saveGlobalConfig } from './config.js'
@@ -82,8 +81,8 @@ function getMenuItems(
   atCap: boolean,
 ): readonly string[] {
   if (!hasCompanions) return ['Hatch']
-  if (atCap) return ['Pet', 'Rename', 'Release', 'Stats']
-  return ['Pet', 'Hatch', 'Rename', 'Release', 'Stats']
+  if (atCap) return ['Pet', 'Rename', 'Release']
+  return ['Pet', 'Hatch', 'Rename', 'Release']
 }
 
 function BuddyShell({
@@ -196,9 +195,6 @@ function BuddyShell({
       } else if (item === 'Release') {
         setReleaseConfirm(true)
         setReleaseIndex(0)
-      } else if (item === 'Stats') {
-        const msgs = doStats()
-        appendMessages(msgs)
       }
     },
     [menuItems, setAppState, startHatch, appendMessages],
@@ -348,7 +344,7 @@ function BuddyShell({
   )
 
   return (
-    <Box flexDirection="row" width={columns}>
+    <Box flexDirection="row" width={columns} height={rows}>
       {/* Left column: page dots + card */}
       {showSideCard && companion && (
         <Box flexDirection="column" width={CARD_WIDTH} flexShrink={0}>
@@ -368,10 +364,11 @@ function BuddyShell({
         </Box>
       )}
 
-      {/* Right column: log + menu/confirm/rename */}
+      {/* Right column: log fills space, menu anchored at bottom */}
       <Box
         flexDirection="column"
         flexGrow={1}
+        height={rows}
         paddingLeft={showSideCard ? 1 : 0}
       >
         <MessageList messages={messages} maxLines={maxLines} />
