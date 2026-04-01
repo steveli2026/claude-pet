@@ -33,7 +33,7 @@ function PageIndicator({
   )
 }
 
-function MenuBar({
+function VerticalMenu({
   items,
   selectedIndex,
 }: {
@@ -41,14 +41,10 @@ function MenuBar({
   selectedIndex: number
 }): React.ReactNode {
   return (
-    <Box>
+    <Box flexDirection="column">
       {items.map((item, i) => (
-        <Text
-          key={item}
-          bold={i === selectedIndex}
-          inverse={i === selectedIndex}
-        >
-          {i === selectedIndex ? ` ${item} ` : `  ${item}  `}
+        <Text key={item} bold={i === selectedIndex}>
+          {i === selectedIndex ? `▸ ${item}` : `  ${item}`}
         </Text>
       ))}
     </Box>
@@ -105,7 +101,8 @@ function BuddyShell({
     hasCompanions && companion && columns >= MIN_COLS_FOR_SIDE_CARD
 
   const animation = useCompanionAnimation(companion)
-  const maxLines = Math.max(3, rows - 4)
+  const menuHeight = menuItems.length + (renameMode ? 1 : 0)
+  const maxLines = Math.max(3, rows - menuHeight - 2)
 
   const appendMessages = useCallback((msgs: string[]) => {
     setMessages(prev => {
@@ -218,45 +215,39 @@ function BuddyShell({
   })
 
   return (
-    <Box flexDirection="column" width={columns}>
-      {/* Page indicator above card */}
-      {config.companions.length > 1 && (
-        <PageIndicator
-          total={config.companions.length}
-          active={currentBuddyIndex}
-        />
-      )}
-
-      {/* Main content row */}
-      <Box flexDirection="row" width={columns}>
-        {/* Left: Card */}
-        {showSideCard && companion && (
-          <Box flexDirection="column" width={CARD_WIDTH} flexShrink={0}>
-            <CompanionCard
-              companion={companion}
-              spriteLines={animation.spriteLines}
-              reaction={animation.reaction}
-              fading={animation.fading}
-              tick={animation.tick}
+    <Box flexDirection="row" width={columns}>
+      {/* Left column: page dots + card */}
+      {showSideCard && companion && (
+        <Box flexDirection="column" width={CARD_WIDTH} flexShrink={0}>
+          {config.companions.length > 1 && (
+            <PageIndicator
+              total={config.companions.length}
+              active={currentBuddyIndex}
             />
-          </Box>
-        )}
-        {/* Right: Messages */}
-        <Box flexDirection="column" flexGrow={1} paddingLeft={showSideCard ? 1 : 0}>
-          <MessageList messages={messages} maxLines={maxLines} />
+          )}
+          <CompanionCard
+            companion={companion}
+            spriteLines={animation.spriteLines}
+            reaction={animation.reaction}
+            fading={animation.fading}
+            tick={animation.tick}
+          />
         </Box>
-      </Box>
-
-      {/* Bottom: Menu bar or rename input */}
-      {renameMode ? (
-        <Box>
-          <Text color="cyan">New name: </Text>
-          <Text>{renameInput}</Text>
-          <Text dimColor>█</Text>
-        </Box>
-      ) : (
-        <MenuBar items={menuItems} selectedIndex={clampedIndex} />
       )}
+
+      {/* Right column: log + menu */}
+      <Box flexDirection="column" flexGrow={1} paddingLeft={showSideCard ? 1 : 0}>
+        <MessageList messages={messages} maxLines={maxLines} />
+        {renameMode ? (
+          <Box>
+            <Text color="cyan">New name: </Text>
+            <Text>{renameInput}</Text>
+            <Text dimColor>█</Text>
+          </Box>
+        ) : (
+          <VerticalMenu items={menuItems} selectedIndex={clampedIndex} />
+        )}
+      </Box>
     </Box>
   )
 }
