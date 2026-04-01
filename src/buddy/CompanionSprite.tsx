@@ -86,14 +86,19 @@ export function useCompanionAnimation(companion: Companion | undefined): {
     } else {
       spriteFrame = step % frameCount
     }
-    // Trigger idle chatter when transitioning to a fidget frame
-    if (step > 0 && prevStep.current === 0 && !reaction && Math.random() < 0.3) {
+  }
+
+  // Idle chatter — must be in useEffect, not during render
+  useEffect(() => {
+    if (!companion || reaction || petting) return
+    const step = IDLE_SEQUENCE[tick % IDLE_SEQUENCE.length]!
+    if (step > 0 && prevStep.current === 0 && Math.random() < 0.3) {
       setAppState(prev =>
         prev.companionReaction ? prev : { ...prev, companionReaction: pickIdleChatter() },
       )
     }
     prevStep.current = step
-  }
+  }, [tick, companion, reaction, petting, setAppState])
 
   const body = renderSprite(companion, spriteFrame).map(line =>
     blink ? line.replaceAll(companion.eye, '-') : line,

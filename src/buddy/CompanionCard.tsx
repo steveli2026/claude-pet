@@ -98,11 +98,13 @@ export function CompanionCard({
   const speciesLabel = companion.species.toUpperCase()
 
   // Build header text — pad so total display width = CARD_INNER_WIDTH
+  // Keep ✨ emoji OUT of RainbowText (Ink miscalculates its width per-char)
   const rarityText = `${stars} ${companion.rarity.toUpperCase()}`
-  const speciesText = speciesLabel + (isShiny ? ' ✨' : '')
-  const usedWidth = stringWidth(rarityText) + stringWidth(speciesText)
-  const gap = Math.max(1, CARD_INNER_WIDTH - usedWidth)
-  const headerLine = rarityText + ' '.repeat(gap) + speciesText
+  const emojiSuffix = isShiny ? ' ✨' : ''
+  const textOnly = rarityText + speciesLabel
+  const emojiWidth = stringWidth(emojiSuffix)
+  const gap = Math.max(1, CARD_INNER_WIDTH - stringWidth(textOnly) - emojiWidth)
+  const headerTextPart = rarityText + ' '.repeat(gap) + speciesLabel
 
   return (
     <Box
@@ -115,11 +117,12 @@ export function CompanionCard({
       {/* Header: rarity + species */}
       {isShiny ? (
         <Box>
-          <RainbowText text={headerLine} tick={tick} bold />
+          <RainbowText text={headerTextPart} tick={tick} bold />
+          <Text bold>{emojiSuffix}</Text>
         </Box>
       ) : (
         <Text color={color} bold>
-          {headerLine}
+          {headerTextPart}
         </Text>
       )}
 
