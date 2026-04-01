@@ -1,16 +1,39 @@
 {
   "name": "claude-pet",
   "version": "0.1.0",
-  "private": true,
+  "description": "Terminal virtual pet companion inspired by Claude Code's buddy feature. Hatch, collect, and interact with ASCII art pets in your terminal.",
   "type": "module",
+  "bin": {
+    "claude-pet": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/cli.js",
-    "test": "npm run build && node --test"
+    "test": "npm run build && node --test",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "keywords": [
+    "terminal",
+    "pet",
+    "buddy",
+    "ascii-art",
+    "cli",
+    "virtual-pet",
+    "ink",
+    "claude"
+  ],
+  "author": "steveli2026",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/steveli2026/claude-pet.git"
   },
   "dependencies": {
     "figures": "^6.1.0",
