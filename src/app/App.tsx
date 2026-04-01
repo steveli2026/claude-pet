@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
-import { CompanionCard, CARD_WIDTH } from '../buddy/CompanionCard.js'
+import { CompanionCard, CARD_WIDTH, getCardHeight } from '../buddy/CompanionCard.js'
 import { useCompanionAnimation } from '../buddy/CompanionSprite.js'
 import { HatchAnimation, getHatchTotalFrames } from '../buddy/HatchAnimation.js'
 import { getActiveCompanion, getCompanion } from '../buddy/companion.js'
@@ -123,8 +123,10 @@ function BuddyShell({
     hasCompanions && companion && columns >= MIN_COLS_FOR_SIDE_CARD
 
   const animation = useCompanionAnimation(companion)
-  const menuHeight = menuItems.length + (renameMode ? 1 : 0)
-  const maxLines = Math.max(3, rows - menuHeight - 2)
+  const hasDots = config.companions.length > 1
+  const cardHeight = companion ? getCardHeight(!!companion.personality) + (hasDots ? 1 : 0) : 0
+  const containerHeight = Math.max(cardHeight, menuItems.length + 4)
+  const maxLines = Math.max(1, containerHeight - menuItems.length - (releaseConfirm ? 1 : 0))
 
   // Hatch animation timer
   useEffect(() => {
@@ -344,11 +346,11 @@ function BuddyShell({
   )
 
   return (
-    <Box flexDirection="row" width={columns} height={rows}>
+    <Box flexDirection="row" width={columns} height={containerHeight}>
       {/* Left column: page dots + card */}
       {showSideCard && companion && (
         <Box flexDirection="column" width={CARD_WIDTH} flexShrink={0}>
-          {config.companions.length > 1 && (
+          {hasDots && (
             <PageIndicator
               total={config.companions.length}
               active={currentBuddyIndex}
@@ -368,7 +370,7 @@ function BuddyShell({
       <Box
         flexDirection="column"
         flexGrow={1}
-        height={rows}
+        height={containerHeight}
         paddingLeft={showSideCard ? 1 : 0}
       >
         <MessageList messages={messages} maxLines={maxLines} />

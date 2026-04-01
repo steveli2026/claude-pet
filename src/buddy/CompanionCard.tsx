@@ -78,6 +78,14 @@ function wrapText(text: string, width: number): string[] {
 
 export const CARD_WIDTH = CARD_INNER_WIDTH + 4 // border + padding
 
+// Estimate card height: border(2) + header(1) + blank(1) + sprite(~5) + blank(1) + name(1) + blank(1) + personality(~3) + blank(1) + stats(5) = ~21
+export function getCardHeight(hasPersonality: boolean): number {
+  // header + blank + sprite(5) + blank + name + blank + stats(5) + border(2)
+  const base = 1 + 1 + 5 + 1 + 1 + 1 + 5 + 2
+  const personality = hasPersonality ? 4 : 0 // ~3 lines + blank
+  return base + personality
+}
+
 export function CompanionCard({
   companion,
   spriteLines,
