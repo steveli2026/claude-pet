@@ -4,7 +4,7 @@
   "description": "Terminal virtual pet companion inspired by Claude Code's buddy feature. Hatch, collect, and interact with ASCII art pets in your terminal.",
   "type": "module",
   "bin": {
-    "claude-buddy-pet": "./dist/cli.js"
+    "claude-buddy-pet": "dist/cli.js"
   },
   "files": [
     "dist"
@@ -14,6 +14,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/cli.js",
     "test": "npm run build && node --test",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
   "engines": {
