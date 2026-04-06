@@ -2,3 +2,4 @@ node_modules/
 dist/
 .data/companion.json
 .DS_Store
+.omx/
